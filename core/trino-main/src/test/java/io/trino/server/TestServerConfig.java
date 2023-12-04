@@ -34,6 +34,7 @@ public class TestServerConfig
                 .setConcurrentStartup(false)
                 .setIncludeExceptionInResponse(true)
                 .setGracePeriod(new Duration(2, MINUTES))
+                .setShutdownTimeout(new Duration(5, MINUTES))
                 .setQueryResultsCompressionEnabled(true)
                 .setQueryInfoUrlTemplate(null));
     }
@@ -46,6 +47,7 @@ public class TestServerConfig
                 .put("experimental.concurrent-startup", "true")
                 .put("http.include-exception-in-response", "false")
                 .put("shutdown.grace-period", "5m")
+                .put("shutdown.timeout", "10m")
                 .put("query-results.compression-enabled", "false")
                 .put("query.info-url-template", "https://example.com/query/${QUERY_ID}")
                 .buildOrThrow();
@@ -55,6 +57,7 @@ public class TestServerConfig
                 .setConcurrentStartup(true)
                 .setIncludeExceptionInResponse(false)
                 .setGracePeriod(new Duration(5, MINUTES))
+                .setShutdownTimeout(new Duration(10, MINUTES))
                 .setQueryResultsCompressionEnabled(false)
                 .setQueryInfoUrlTemplate("https://example.com/query/${QUERY_ID}");
 

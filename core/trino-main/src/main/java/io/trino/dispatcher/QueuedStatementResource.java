@@ -35,6 +35,7 @@ import io.trino.server.HttpRequestSessionContextFactory;
 import io.trino.server.ProtocolConfig;
 import io.trino.server.ServerConfig;
 import io.trino.server.SessionContext;
+import io.trino.server.StartupStatus;
 import io.trino.server.protocol.QueryInfoUrlFactory;
 import io.trino.server.protocol.Slug;
 import io.trino.server.security.InternalPrincipal;
@@ -96,7 +97,9 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static jakarta.ws.rs.core.MediaType.TEXT_PLAIN_TYPE;
 import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
 import static jakarta.ws.rs.core.Response.Status.FORBIDDEN;
+import static jakarta.ws.rs.core.Response.Status.GONE;
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+import static jakarta.ws.rs.core.Response.Status.SERVICE_UNAVAILABLE;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -122,9 +125,11 @@ public class QueuedStatementResource
     private final boolean compressionEnabled;
     private final Optional<String> alternateHeaderName;
     private final QueryManager queryManager;
+    private final StartupStatus status;
 
     @Inject
     public QueuedStatementResource(
+            StartupStatus status,
             HttpRequestSessionContextFactory sessionContextFactory,
             DispatchManager dispatchManager,
             Tracer tracer,
@@ -134,6 +139,7 @@ public class QueuedStatementResource
             ProtocolConfig protocolConfig,
             QueryManagerConfig queryManagerConfig)
     {
+        this.status = requireNonNull(status, "status is null");
         this.sessionContextFactory = requireNonNull(sessionContextFactory, "sessionContextFactory is null");
         this.dispatchManager = requireNonNull(dispatchManager, "dispatchManager is null");
         this.tracer = requireNonNull(tracer, "tracer is null");
@@ -168,6 +174,10 @@ public class QueuedStatementResource
     {
         if (isNullOrEmpty(statement)) {
             throw badRequest(BAD_REQUEST, "SQL statement is empty");
+        }
+
+        if (status.isShutdownStarted()) {
+            return badRequest(SERVICE_UNAVAILABLE, "Coordinator is shutting down").getResponse();
         }
 
         Query query = registerQuery(statement, servletRequest, httpHeaders);
@@ -391,7 +401,7 @@ public class QueuedStatementResource
             long lastToken = this.lastToken.get();
             // token should be the last token or the next token
             if (token != lastToken && token != lastToken + 1) {
-                throw new WebApplicationException(Response.Status.GONE);
+                throw new WebApplicationException(GONE);
             }
             // advance (or stay at) the token
             this.lastToken.compareAndSet(lastToken, token);

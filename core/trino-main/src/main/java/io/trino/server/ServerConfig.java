@@ -28,6 +28,8 @@ public class ServerConfig
     private boolean concurrentStartup;
     private boolean includeExceptionInResponse = true;
     private Duration gracePeriod = new Duration(2, MINUTES);
+    private Duration shutdownTimeout = new Duration(5, MINUTES);
+    private boolean cancelOnTimeout;
     private boolean queryResultsCompressionEnabled = true;
     private Optional<String> queryInfoUrlTemplate = Optional.empty();
 
@@ -77,6 +79,19 @@ public class ServerConfig
     public ServerConfig setGracePeriod(Duration gracePeriod)
     {
         this.gracePeriod = gracePeriod;
+        return this;
+    }
+
+    public Duration getShutdownTimeout()
+    {
+        return shutdownTimeout;
+    }
+
+    @Config("shutdown.timeout")
+    @ConfigDescription("Maximum graceful shutdown duration that when exceeded will forcefully bring node down")
+    public ServerConfig setShutdownTimeout(Duration shutdownTimeout)
+    {
+        this.shutdownTimeout = shutdownTimeout;
         return this;
     }
 
